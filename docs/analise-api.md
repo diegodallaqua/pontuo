@@ -1,6 +1,6 @@
 # Análise da API para a migração
 
-Análise em **15/10/2026**, a partir dos DTOs, controllers, serviços, repositórios e configuração do checkout local `../api-pontuo`. Já havia alterações locais nesse diretório. Nenhum arquivo do backend foi modificado.
+Análise inicial em **15/10/2026**, a partir dos DTOs, controllers, serviços, repositórios e configuração do checkout local `../api-pontuo`. As correções dos itens 1 e 3 foram implementadas na API em **23/10/2026**.
 
 ## O que a API já oferece
 
@@ -8,20 +8,17 @@ O fluxo do estudante está disponível: autenticação, catálogo, sorteio combi
 
 O frontend usa `/performance/me` e envia o próprio `userId` na listagem de simulados, mantendo o escopo pessoal inclusive para uma conta administradora. O contrato está em [`contrato-api.md`](../contrato-api.md).
 
-## 1. Correção e resolução antes da finalização
+## 1. Correção e resolução antes da finalização — corrigido
 
-**Impacto:** o estudante pode inspecionar respostas HTTP ou alternar alternativas para descobrir o acerto antes de concluir.
+Antes da correção, `/mock-exam-questions` expunha `correct` e a explicação,
+inclusive durante a prova. `/questions`, `/answer-options` e
+`/question-images` também podiam expor a explicação.
 
-Evidências sob `src/main/java/com/pontuo/api_pontuo`:
-
-- `controller/MockExamHasQuestionController.java`, linha 113: envia `entity.getIsCorrect()` sem condicionar à finalização.
-- Mesmo controller, linha 177: a questão embutida envia `entity.getExplanation()`.
-- `controller/QuestionController.java`, linha 186: consultas gerais de questão enviam resolução.
-- `controller/AnswerOptionController.java`, linha 105: a questão embutida na alternativa também envia resolução.
-
-O DTO do sorteio evita esse conteúdo, mas as demais rotas seguem acessíveis. O React descarta esses campos na sessão e não mostra correção antecipada. **Isso não corrige a segurança**, pois os dados já trafegaram.
-
-A correção adequada deve ocorrer no backend: condicionar o resultado à finalização e usar DTOs sem resolução nas leituras pré-prova, inclusive nos objetos aninhados, preservando o acesso administrativo.
+Agora a API devolve `correct` e a explicação como nulos nos vínculos de um
+simulado ainda não finalizado para estudantes. Após `finish`, ambos têm valor
+na consulta dos vínculos respondidos. As consultas gerais de questões,
+alternativas e imagens devolvem a explicação nula para estudantes; o
+administrador conserva o acesso para revisão.
 
 ## 2. Resultado sem gabarito completo
 
@@ -29,11 +26,16 @@ A correção adequada deve ocorrer no backend: condicionar o resultado à finali
 
 O frontend entrega nota, análise por disciplina e **conferência das respostas enviadas**. Um gabarito completo requer um contrato de resultado autorizado após finalizar que informe a alternativa certa. É uma lacuna do contrato do resultado, distinta da tela de revisão de erros, mantida fora do escopo.
 
-## 3. Prazo e configuração sem garantia de servidor
+## 3. Prazo e configuração — bloqueio implementado na API
 
-`MockExamService.update`, linha 84, aceita alterar `maxTime` depois do início. O serviço de respostas verifica início/fim, mas não o prazo. A API não finaliza provas automaticamente.
+`maxTime` agora fica fixo após o início. A API recusa com `409` alterações no
+simulado e nos vínculos a partir de `startedAt + maxTime`. A finalização pode
+ser pedida após o vencimento e grava `finishedAt` no horário limite.
 
-O React preserva o tempo na edição depois do início, bloqueia respostas vencidas e tenta finalizar com a página aberta ou ao retomar. Não executa com o navegador fechado. Se o tempo for obrigatório, a API deve validar o prazo nas mutações e definir uma política de fechamento.
+O React continua tentando finalizar com a página aberta ou ao retomar. Não há
+finalização em segundo plano com o navegador fechado: um simulado vencido
+permanece sem boletim até uma chamada a `finish`, embora respostas tardias já
+sejam recusadas pelo servidor.
 
 ## 4. Datas sem fuso
 

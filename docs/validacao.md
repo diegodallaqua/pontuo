@@ -33,4 +33,4 @@ Use um estudante de teste e o banco de desenvolvimento:
 7. Confira histórico e desempenho, respeitando a semântica de período/vestibular.
 8. Faça logout e verifique que a API rejeita o token revogado, sem expor tokens em capturas.
 
-Limites de contrato, incluindo resolução antecipada, gabarito incompleto e prazo sem garantia de servidor: [Análise da API](analise-api.md).
+Limites de contrato restantes, incluindo gabarito incompleto, datas sem fuso e ausência de finalização em segundo plano: [Análise da API](analise-api.md).

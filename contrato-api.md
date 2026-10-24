@@ -21,7 +21,7 @@ O cadastro valida senha com mínimo de 8 caracteres e limite de 72 bytes para BC
 
 Ambos combinam `knowledgeAreaId`, `subjectId`, `topicId`, `entranceExamId` e `difficulty` (1–3). Parâmetros vazios são omitidos. `size` do sorteio aceita 1–100; podem vir menos questões que o solicitado.
 
-Na retomada, alternativas e imagens vêm de `/answer-options?questionId=...` e `/question-images?questionId=...`. O adaptador remove resolução e dados de gabarito da sessão.
+Na retomada, alternativas e imagens vêm de `/answer-options?questionId=...` e `/question-images?questionId=...`. A API devolve a resolução nula e omite o gabarito para estudantes; o adaptador também os exclui da sessão.
 
 ## Simulados
 
@@ -41,7 +41,10 @@ Na retomada, alternativas e imagens vêm de `/answer-options?questionId=...` e `
 
 `MockExam` contém `id`, `name`, `numQuestions`, `maxTime`, `createdAt`, `startedAt`, `finishedAt`, `answeredCount`, `correctCount` e `accuracy`. Os totais podem ser nulos antes de finalizar; `finishedAt` tem prioridade na determinação do estado.
 
-Os vínculos fornecem `correct` e `answerOption` (nula se em branco). O React usa correção apenas no resultado. Não há contrato de gabarito completo para estudantes: veja [Análise da API](docs/analise-api.md).
+Os vínculos fornecem `answerOption` (nula se em branco). Para estudantes,
+`correct` e a explicação ficam nulos até a finalização; depois disso, são
+fornecidos no resultado. Não há contrato de gabarito completo para estudantes:
+veja [Análise da API](docs/analise-api.md).
 
 ## Desempenho
 
@@ -71,4 +74,4 @@ Resumo: `finishedMockExams`, `questions`, `answered`, `correct`, `accuracy`, `av
 - `5xx`/rede: erro recuperável sem repetir mutações automaticamente.
 - `204`: sucesso sem JSON.
 
-Datas vêm sem fuso (`LocalDateTime`); configure `VITE_API_UTC_OFFSET` conforme a JVM. O prazo ainda não é imposto pelo backend.
+Datas vêm sem fuso (`LocalDateTime`); configure `VITE_API_UTC_OFFSET` conforme a JVM. O backend rejeita alterações após `startedAt + maxTime` com `409`; a finalização após o prazo registra `finishedAt` no horário limite.
