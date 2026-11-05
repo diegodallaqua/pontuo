@@ -13,31 +13,11 @@ import {
 } from '../../../shared/ui/components';
 import { errorMessage } from '../../../shared/lib/http';
 import { formatTimer } from '../../../shared/lib/date';
-import { isSafeImageUrl, questionSubject, type QuestionImage } from '../../catalog/domain/catalog';
+import { questionSubject } from '../../catalog/domain/catalog';
 import type { MockExamSession } from '../domain/mock-exam';
 import { useExamRunner } from '../application/use-exam-runner';
+import { QuestionFigure } from './question-figure';
 
-function QuestionFigure({ image }: { image: QuestionImage }) {
-  const [failed, setFailed] = useState(false);
-  return (
-    <figure>
-      {isSafeImageUrl(image.url) && !failed ? (
-        <img
-          src={image.url}
-          alt={image.subtitle || 'Imagem que integra o enunciado da questão'}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={() => setFailed(true)}
-        />
-      ) : (
-        <div className="notice" role="status">
-          A imagem desta questão não pôde ser carregada.
-        </div>
-      )}
-      {image.subtitle && <figcaption>{image.subtitle}</figcaption>}
-    </figure>
-  );
-}
 export function SessionPage() {
   const { id } = useParams();
   const { mockExams } = useServices();

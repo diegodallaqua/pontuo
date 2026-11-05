@@ -31,26 +31,27 @@ Na retomada, alternativas e imagens vêm de `/answer-options?questionId=...` e `
 
 ## Simulados
 
-| Método e rota                             | Contrato                                                                                |
-| ----------------------------------------- | --------------------------------------------------------------------------------------- |
-| `GET /mock-exams?userId=...&search=...`   | Histórico pessoal. A busca pelo nome vai à API; situação e ordem são aplicadas na tela. |
-| `POST /mock-exams`                        | `{ name, numQuestions, maxTime }`, tempo em minutos e dono derivado do token.           |
-| `GET /mock-exams/{id}`                    | Metadados e ciclo de vida.                                                              |
-| `PUT /mock-exams/{id}`                    | `{ name, numQuestions, maxTime }`. A tela preserva quantidade e, após início, tempo.    |
-| `DELETE /mock-exams/{id}`                 | Remove simulado e respostas.                                                            |
-| `POST /mock-exam-questions`               | `{ mockExamId, questionId, answerOptionId: null }`.                                     |
-| `GET /mock-exam-questions?mockExamId=...` | Vínculos, questão e alternativa marcada, todas as páginas. Ordem pelo id do vínculo.    |
-| `POST /mock-exams/{id}/start`             | Sem corpo; retorna `MockExam`.                                                          |
-| `PUT /mock-exam-questions/{linkId}`       | `{ mockExamId, questionId, answerOptionId }`; `null` limpa. A rota usa o id do vínculo. |
-| `POST /mock-exams/{id}/finish`            | Sem corpo; retorna `{ mockExam, subjects }`.                                            |
-| `GET /mock-exams/{id}/result`             | `{ mockExam, subjects }`; a tela redireciona se ainda não estiver finalizado.           |
+| Método e rota                             | Contrato                                                                                                                      |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `GET /mock-exams?userId=...&search=...`   | Histórico pessoal. A busca pelo nome vai à API; situação e ordem são aplicadas na tela.                                       |
+| `POST /mock-exams`                        | `{ name, numQuestions, maxTime }`, tempo em minutos e dono derivado do token.                                                 |
+| `GET /mock-exams/{id}`                    | Metadados e ciclo de vida.                                                                                                    |
+| `PUT /mock-exams/{id}`                    | `{ name, numQuestions, maxTime }`. A tela preserva quantidade e, após início, tempo.                                          |
+| `DELETE /mock-exams/{id}`                 | Remove simulado e respostas.                                                                                                  |
+| `POST /mock-exam-questions`               | `{ mockExamId, questionId, answerOptionId: null }`.                                                                           |
+| `GET /mock-exam-questions?mockExamId=...` | Vínculos, questão e alternativa marcada, todas as páginas. Ordem pelo id do vínculo.                                          |
+| `POST /mock-exams/{id}/start`             | Sem corpo; retorna `MockExam`.                                                                                                |
+| `PUT /mock-exam-questions/{linkId}`       | `{ mockExamId, questionId, answerOptionId }`; `null` limpa. A rota usa o id do vínculo.                                       |
+| `POST /mock-exams/{id}/finish`            | Sem corpo; retorna `{ mockExam, subjects }`.                                                                                  |
+| `GET /mock-exams/{id}/result`             | `{ mockExam, subjects }`. Vencido sem `finishedAt`: a tela chama `finish` antes de exibir; dentro do prazo, volta à execução. |
+| `GET /mock-exams/{id}/review`             | Revisão, só após finalizar (`409` antes). Lista sem paginação, na ordem da prova.                                             |
 
 `MockExam` contém `id`, `name`, `numQuestions`, `maxTime`, `createdAt`, `startedAt`, `finishedAt`, `answeredCount`, `correctCount` e `accuracy`. Os totais podem ser nulos antes de finalizar; `finishedAt` tem prioridade na determinação do estado.
 
 Os vínculos fornecem `answerOption` (nula se em branco). Para estudantes,
-`correct` e a explicação ficam nulos até a finalização; depois disso, são
-fornecidos no resultado. Não há contrato de gabarito completo para estudantes:
-veja [Análise da API](docs/analise-api.md).
+`correct` e a explicação ficam nulos até a finalização.
+
+Cada item da revisão traz `id` do vínculo, `answeredAt`, `correct`, `selectedAnswerOptionId` (os três nulos em branco), `question` com `explanation`, `images` e `answerOptions` com `rightAnswer`, em ordem de letra. A conferência do resultado e a tela `/simulados/{id}/revisao` usam essa rota, sempre depois de `loadResult` garantir a finalização. `correct` é a correção gravada na finalização e `rightAnswer`, o gabarito atual: se divergirem, a tela avisa que o gabarito foi corrigido depois da prova.
 
 ## Desempenho
 

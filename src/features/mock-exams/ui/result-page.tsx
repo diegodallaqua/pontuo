@@ -11,6 +11,10 @@ import {
   PageHeader,
 } from '../../../shared/ui/components';
 import { formatAccuracy, formatDate } from '../../../shared/lib/date';
+import { loadReview } from '../application/load-result';
+import { reviewOutcome, selectedOption } from '../domain/mock-exam';
+
+const keyLabels = { correct: 'correta', incorrect: 'incorreta', blank: 'em branco' };
 
 export function ResultPage() {
   const { id } = useParams();
@@ -20,11 +24,7 @@ export function ResultPage() {
     useCallback(
       async (signal: AbortSignal) => {
         if (!Number.isSafeInteger(examId) || examId < 1) throw new Error('Simulado inválido.');
-        const result = await mockExams.result(examId, signal);
-        const answers = result.mockExam.finishedAt
-          ? await mockExams.answerResults(examId, signal)
-          : [];
-        return { ...result, answers };
+        return loadReview(mockExams, examId, signal);
       },
       [mockExams, examId],
     ),
@@ -32,7 +32,7 @@ export function ResultPage() {
   if (resource.loading) return <Loading label="Reunindo suas conquistas…" />;
   if (resource.error) return <ErrorState error={resource.error} onRetry={resource.reload} />;
   if (!resource.data) return null;
-  const { mockExam: exam, subjects, answers } = resource.data;
+  const { mockExam: exam, subjects, questions } = resource.data;
   if (!exam.finishedAt) return <Navigate to={`/simulados/${examId}/execucao`} replace />;
   const correct = exam.correctCount ?? 0;
   const answered = exam.answeredCount ?? 0;
@@ -142,34 +142,33 @@ export function ResultPage() {
             <div>
               <h2>Conferência das respostas</h2>
               <p className="muted text-small">
-                Sua alternativa marcada e a correção de cada questão.
+                Abra uma questão para ver o gabarito e a resolução comentada.
               </p>
             </div>
+            {questions.length > 0 && (
+              <Link className="text-link" to={`/simulados/${examId}/revisao`}>
+                Revisar questões
+                <ArrowRight size={15} />
+              </Link>
+            )}
           </div>
           <div className="answer-key-grid">
-            {answers.map((answer, index) => (
-              <div
-                key={answer.id}
-                className={`answer-key-item ${answer.answerLetter === null ? 'key-blank' : answer.correct ? 'key-correct' : 'key-incorrect'}`}
-              >
-                <span>{String(index + 1).padStart(2, '0')}</span>
-                <strong>{answer.answerLetter ?? '—'}</strong>
-                {answer.answerLetter === null ? (
-                  <Minus size={14} />
-                ) : answer.correct ? (
-                  <Check size={14} />
-                ) : (
-                  <X size={14} />
-                )}
-                <span className="sr-only">
-                  {answer.answerLetter === null
-                    ? 'Em branco'
-                    : answer.correct
-                      ? 'Correta'
-                      : 'Incorreta'}
-                </span>
-              </div>
-            ))}
+            {questions.map((item, index) => {
+              const outcome = reviewOutcome(item);
+              const Icon = outcome === 'blank' ? Minus : outcome === 'correct' ? Check : X;
+              return (
+                <Link
+                  key={item.id}
+                  to={`/simulados/${examId}/revisao?questao=${index + 1}`}
+                  className={`answer-key-item key-${outcome}`}
+                  aria-label={`Revisar questão ${index + 1}: ${keyLabels[outcome]}`}
+                >
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  <strong>{selectedOption(item)?.letter ?? '—'}</strong>
+                  <Icon size={14} />
+                </Link>
+              );
+            })}
           </div>
           <div className="map-legend">
             <span>

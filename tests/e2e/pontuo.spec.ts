@@ -179,6 +179,62 @@ test('histórico busca o nome na API e mantém situação e ordem na tela', asyn
   await expect(titles).toHaveCount(4);
 });
 
+test('simulado com tempo esgotado é finalizado antes de abrir o resultado', async ({ page }) => {
+  const state = await mockContractApi(page, {
+    exam: makeExam({ startedAt: apiDate(Date.now() - 2 * 60 * 60_000), maxTime: 30 }),
+  });
+  await page.goto('/simulados');
+  await expect(page.locator('.history-card .status-badge')).toHaveText('Tempo esgotado');
+  await expect(page.getByRole('button', { name: 'Editar Treino de matemática' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Finalizados' }).click();
+  await page.getByRole('link', { name: 'Ver resultado de Treino de matemática' }).click();
+  await expect(page).toHaveURL(/\/simulados\/100\/resultado$/);
+  await expect(page.getByText('0%', { exact: true }).first()).toBeVisible();
+  expect(state.finishCalls).toBe(1);
+  expect(state.requests.some((request) => request.path === '/mock-exams/100/review')).toBe(true);
+  expect(state.requests.some((request) => request.path === '/answer-options')).toBe(false);
+});
+
+test('revisa gabarito, resposta e resolução depois de finalizar', async ({ page }) => {
+  const state = await mockContractApi(page, {
+    exam: makeExam({
+      startedAt: '2026-10-14T10:00:00',
+      finishedAt: '2026-10-14T10:20:00',
+      answeredCount: 1,
+      correctCount: 0,
+      accuracy: 0,
+    }),
+  });
+  const [first] = state.links;
+  first!.answerOption = first!.question.answerOptions[1]!;
+  first!.correct = false;
+  await page.goto('/simulados/100/resultado');
+  await page.getByRole('link', { name: 'Revisar questão 2: em branco' }).click();
+  await expect(page).toHaveURL(/\/simulados\/100\/revisao\?questao=2$/);
+  await expect(page.locator('.review-verdict')).toHaveText('Em branco');
+  await expect(page.locator('.review-right')).toContainText('Correta');
+  await expect(page.locator('.review-wrong')).toHaveCount(0);
+  await expect(page.getByText('Resolução: some as parcelas.')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Questão 1: você errou' }).click();
+  await expect(page.locator('.review-verdict')).toHaveText('Você errou');
+  await expect(page.locator('.review-wrong')).toContainText('Sua resposta');
+  await expect(page.locator('.review-right')).toContainText('Correta');
+  await page.screenshot({ path: '.artifacts/review-desktop.png', fullPage: true });
+
+  state.explanation = null;
+  await page.reload();
+  await expect(page).toHaveURL(/questao=1$/);
+  await expect(page.getByText('Esta questão ainda não tem resolução comentada.')).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    ),
+  ).toBeLessThanOrEqual(0);
+  await page.screenshot({ path: '.artifacts/review-mobile.png', fullPage: true });
+});
+
 test('401 encerra a sessão e mantém o destino para novo login', async ({ page }) => {
   const state = await mockContractApi(page);
   state.unauthorizedPath = '/mock-exams';

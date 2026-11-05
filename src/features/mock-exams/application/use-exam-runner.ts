@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useServices } from '../../../app/services';
 import { ApiError } from '../../../shared/lib/http';
-import { parseApiDate } from '../../../shared/lib/date';
-import type { MockExamSession } from '../domain/mock-exam';
+import { mockExamDeadline, type MockExamSession } from '../domain/mock-exam';
 
 export function useExamRunner(initial: MockExamSession, reload: () => void) {
   const { mockExams } = useServices();
@@ -17,9 +16,7 @@ export function useExamRunner(initial: MockExamSession, reload: () => void) {
   const operation = useRef(false);
   const autoFinishAttempted = useRef(false);
   const exam = session.mockExam;
-  const deadline = exam.startedAt
-    ? parseApiDate(exam.startedAt).getTime() + exam.maxTime * 60_000
-    : null;
+  const deadline = mockExamDeadline(exam);
   const remaining =
     deadline === null ? exam.maxTime * 60 : Math.max(0, Math.ceil((deadline - now) / 1000));
   const expired = deadline !== null && remaining === 0;

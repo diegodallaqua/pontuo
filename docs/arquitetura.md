@@ -88,6 +88,8 @@ Recarregar a URL reconstrói a sessão pelo id. A resposta só muda na interface
 
 O prazo é `startedAt + maxTime`, interpretado no offset configurado. O relógio é recalculado, não decrementado. Uma aba suspensa recupera o tempo correto ao voltar. Uma falha na finalização apresenta erro e nova tentativa explícita; não entra em repetição infinita. `409` recarrega o estado e redireciona ao resultado se necessário.
 
+A API não finaliza simulados vencidos sozinha. `mockExamStatus` deriva `expired` (prazo passou, sem `finishedAt`) e histórico e visão geral levam esse simulado ao resultado. `loadResult` finaliza antes de devolver o boletim e relê o resultado se outra aba já tiver finalizado (`409`); `loadReview` parte dele e só pede `/review` quando há `finishedAt`, usado pelo resultado e pela tela de revisão. O adaptador compartilha um `finish` em andamento do mesmo simulado, então execução e resultado não disparam dois POSTs.
+
 O adaptador projeta apenas campos de apresentação para a sessão, removendo `explanation`, `rightAnswer` e `correct`. Isso evita exibi-los durante a prova, mas não corrige o vazamento existente na resposta HTTP da API.
 
 ## Sessão e segurança
@@ -104,6 +106,6 @@ Estilos gerais e tokens ficam em `app/styles.css`; estilos específicos acompanh
 
 O gráfico usa SVG, descrição acessível e tabela alternativa. Formulários usam validação nativa e regras adicionais do contrato. `<dialog>` oferece foco nativo; o menu móvel controla foco, Escape e rolagem do fundo. Textos e ícones complementam cores de status.
 
-Sem Redux, decorators de DI, classes base de repository ou caso de uso para cada GET. Catálogos e histórico percorrem as páginas da API com `listAll`; o histórico busca pelo nome no servidor e mantém situação, ordem e paginação de 9 cartões na tela. A revisão de erros segue fora do MVP.
+Sem Redux, decorators de DI, classes base de repository ou caso de uso para cada GET. Catálogos e histórico percorrem as páginas da API com `listAll`; o histórico busca pelo nome no servidor e mantém situação, ordem e paginação de 9 cartões na tela.
 
 Referências: [Pensando em React](https://react.dev/learn/thinking-in-react), [Gerenciando estado](https://react.dev/learn/managing-state) e [React Router declarativo](https://reactrouter.com/start/declarative/installation).

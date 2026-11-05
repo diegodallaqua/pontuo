@@ -138,6 +138,7 @@ export async function mockContractApi(
     unauthorizedPath: '',
     forbiddenPath: '',
     finishCalls: 0,
+    explanation: 'Resolução: some as parcelas.' as string | null,
     logoutCalls: 0,
   };
   if (options.exam)
@@ -242,7 +243,7 @@ export async function mockContractApi(
         link.correct = link.answerOption ? link.answerOption.letter === 'A' : null;
         return respond(link);
       }
-      const examMatch = path.match(/^\/mock-exams\/(\d+)(?:\/(start|finish|result))?$/);
+      const examMatch = path.match(/^\/mock-exams\/(\d+)(?:\/(start|finish|result|review))?$/);
       if (examMatch) {
         const exam = state.exams.find((item) => item.id === Number(examMatch[1]));
         if (!exam) return respond({ message: 'Não encontrado' }, 404);
@@ -286,6 +287,25 @@ export async function mockContractApi(
           return respond(result());
         }
         if (examMatch[2] === 'result') return respond(result());
+        if (examMatch[2] === 'review') {
+          if (!exam.finishedAt)
+            return respond({ message: `simulado ainda não foi finalizado: id=${exam.id}` }, 409);
+          // Na fixture, a alternativa A é sempre a correta, como na correção dos vínculos.
+          return respond(
+            state.links.map(({ question: { answerOptions, images, ...question }, ...link }) => ({
+              id: link.id,
+              answeredAt: link.answerOption ? apiDate() : null,
+              correct: link.correct,
+              selectedAnswerOptionId: link.answerOption?.id ?? null,
+              question: { ...question, explanation: state.explanation },
+              images,
+              answerOptions: answerOptions.map((option) => ({
+                ...option,
+                rightAnswer: option.letter === 'A',
+              })),
+            })),
+          );
+        }
         return respond(exam);
       }
       if (path.startsWith('/performance/me/')) {

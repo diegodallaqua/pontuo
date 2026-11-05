@@ -5,12 +5,12 @@ Ambiente: Windows, Node 24.20.0, npm 11.19.0. Ferramentas fixadas no lockfile.
 | Comando                | Verificação                                                                          |
 | ---------------------- | ------------------------------------------------------------------------------------ |
 | `npm run typecheck`    | TypeScript estrito na aplicação, testes e configuração.                              |
-| `npm test`             | 39 casos unitários: regras, compensação, HTTP, adaptação, datas, paginação e perfil. |
+| `npm test`             | 48 casos unitários: regras, compensação, HTTP, adaptação, datas, paginação e perfil. |
 | `npm run build`        | Tipagem e bundle de produção.                                                        |
-| `npm run test:e2e`     | 21 cenários de Chromium com contratos HTTP simulados.                                |
+| `npm run test:e2e`     | 23 cenários de Chromium com contratos HTTP simulados.                                |
 | `npm run format:check` | Formatação consistente dos arquivos ativos.                                          |
 
-Os cenários de navegador cobrem cadastro/login, rotas privadas, montagem, início, resposta/limpeza, retomada, resultado, falha de gravação, bloqueio durante gravação, timeout, 409, filtros dependentes, busca do histórico na API, edição/exclusão, 401/403, filtros da análise, menu móvel, senha visível e logout. Na administração: bloqueio do estudante, busca paginada no servidor, cadastro/edição/exclusão com recusa por registro em uso, instituição com endereço e cidade buscada, criação de questão, transferência do gabarito, validação de URL de imagem e tabela em cartões no celular sem rolagem horizontal.
+Os cenários de navegador cobrem cadastro/login, rotas privadas, montagem, início, resposta/limpeza, retomada, resultado, falha de gravação, bloqueio durante gravação, timeout, 409, filtros dependentes, busca do histórico na API, tempo esgotado finalizado ao abrir o resultado, revisão com gabarito, resposta e resolução, edição/exclusão, 401/403, filtros da análise, menu móvel, senha visível e logout. Na administração: bloqueio do estudante, busca paginada no servidor, cadastro/edição/exclusão com recusa por registro em uso, instituição com endereço e cidade buscada, criação de questão, transferência do gabarito, validação de URL de imagem e tabela em cartões no celular sem rolagem horizontal.
 
 Fixtures existem apenas em `tests/e2e`. As duas respondem listagens no envelope paginado e recusam `page` ou `limit` fora da faixa, como a API; `admin-api.ts` simula o CRUD paginado da administração com busca sem acentos, como a collation `utf8mb4_unicode_ci`; a aplicação não tem dados inventados nem fallback de demonstração. O interceptador corresponde somente a caminhos iniciados por `/api/`, preservando módulos servidos pelo Vite.
 

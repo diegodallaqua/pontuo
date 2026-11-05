@@ -1,7 +1,7 @@
 import { ArrowUpRight, Clock3, FileText } from 'lucide-react';
 import { Link } from 'react-router';
 import { formatAccuracy, formatDate } from '../../../shared/lib/date';
-import { mockExamStatus, statusLabels, type MockExam } from '../domain/mock-exam';
+import { isOver, mockExamStatus, statusLabels, type MockExam } from '../domain/mock-exam';
 
 export function MockExamList({ mockExams }: { mockExams: MockExam[] }) {
   return (
@@ -12,9 +12,9 @@ export function MockExamList({ mockExams }: { mockExams: MockExam[] }) {
           <Link
             key={mockExam.id}
             className="exam-row"
-            to={`/simulados/${mockExam.id}/${status === 'finished' ? 'resultado' : 'execucao'}`}
+            to={`/simulados/${mockExam.id}/${isOver(status) ? 'resultado' : 'execucao'}`}
           >
-            <span className={`exam-row-icon ${status === 'finished' ? '' : 'exam-row-active'}`}>
+            <span className={`exam-row-icon ${isOver(status) ? '' : 'exam-row-active'}`}>
               <FileText size={21} />
             </span>
             <div className="exam-row-title">

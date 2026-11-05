@@ -27,6 +27,7 @@ import {
 import { ApiError, errorMessage } from '../../../shared/lib/http';
 import { formatAccuracy, formatDate } from '../../../shared/lib/date';
 import {
+  isOver,
   mockExamStatus,
   statusLabels,
   type MockExam,
@@ -55,7 +56,13 @@ export function HistoryPage() {
     setPage(0);
   }, [term, status]);
   const filtered =
-    resource.data?.filter((exam) => status === 'all' || mockExamStatus(exam) === status) ?? [];
+    resource.data?.filter((exam) => {
+      const examStatus = mockExamStatus(exam);
+      // Tempo esgotado já é um simulado encerrado: o resultado o finaliza ao abrir.
+      return (
+        status === 'all' || examStatus === status || (status === 'finished' && isOver(examStatus))
+      );
+    }) ?? [];
   // Há simulados fora do recorte: a busca ou a situação escondeu todos.
   const narrowed = !!term || !!resource.data?.length;
   const pages = Math.max(1, Math.ceil(filtered.length / 9));
@@ -151,7 +158,7 @@ export function HistoryPage() {
                       {statusLabels[examStatus]}
                     </span>
                     <div className="history-card-tools">
-                      {examStatus !== 'finished' && (
+                      {!isOver(examStatus) && (
                         <button
                           className="icon-button"
                           aria-label={`Editar ${exam.name}`}
@@ -189,15 +196,17 @@ export function HistoryPage() {
                       <strong>
                         {examStatus === 'finished'
                           ? formatAccuracy(exam.accuracy)
-                          : examStatus === 'active'
-                            ? 'Continue de onde parou'
-                            : 'Tudo pronto para começar'}
+                          : examStatus === 'expired'
+                            ? 'Confira seu resultado'
+                            : examStatus === 'active'
+                              ? 'Continue de onde parou'
+                              : 'Tudo pronto para começar'}
                       </strong>
                     </div>
                     <Link
                       className="round-link"
-                      to={`/simulados/${exam.id}/${examStatus === 'finished' ? 'resultado' : 'execucao'}`}
-                      aria-label={`${examStatus === 'finished' ? 'Ver resultado de' : 'Abrir'} ${exam.name}`}
+                      to={`/simulados/${exam.id}/${isOver(examStatus) ? 'resultado' : 'execucao'}`}
+                      aria-label={`${isOver(examStatus) ? 'Ver resultado de' : 'Abrir'} ${exam.name}`}
                     >
                       <ArrowUpRight size={21} />
                     </Link>

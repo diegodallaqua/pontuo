@@ -32,16 +32,17 @@ To customize the configuration, copy `.env.example` to `.env.local` and adjust t
 - Registration, login, session restoration, expiration, and logout with token revocation.
 - Dashboard with real metrics, progress over time, subjects to revisit, and recent practice exams.
 - Exam setup by knowledge area, subject, topic, entrance exam, and difficulty, with combined filters, available question count, and configurable duration.
-- Exam sessions with an explicit start, deadline timer, navigation, confirmed answer saving, answer clearing, resume, and automatic completion.
+- Exam sessions with an explicit start, deadline timer, navigation, confirmed answer saving, answer clearing, resume, and automatic completion, including when the result of a timed-out exam is opened.
 - History with server-side name search, status filter, pagination, editing, and confirmed deletion.
-- Server-calculated results, correct/incorrect/unanswered counts, answer review, and performance by subject.
+- Server-calculated results, correct/incorrect/unanswered counts, answer check, and performance by subject.
+- Post-exam review: question by question, with the selected option, the correct one, and the explanation.
 - Analysis by knowledge area, subject, topic, and difficulty, plus progress with a table alternative and topics to revisit.
 - Admin panel, shown only to administrators: create, edit, and delete knowledge areas, subjects, topics, institutions (with their address), entrance exams, and questions with answer options, answer key, and images, using server-side search and pagination.
 - Responsive layout, keyboard and focus support, loading/error/empty states, and reduced-motion support.
 
-The answer review shows **which option the student selected and whether it was correct**. When an answer is wrong or blank, the API does not tell the student which option was correct; the frontend does not invent an answer key. See the [API analysis (Portuguese)](docs/analise-api.md).
+The answer key and explanations reach the student only after the exam is finished, through the API's review route. See the [API analysis (Portuguese)](docs/analise-api.md).
 
-An error-review page remains outside the MVP. No aggregation tables or exam-filter tables were created.
+No aggregation tables or exam-filter tables were created.
 
 ## Project structure
 

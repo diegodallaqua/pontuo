@@ -33,6 +33,11 @@ const ResultPage = lazy(() =>
     default: module.ResultPage,
   })),
 );
+const ReviewPage = lazy(() =>
+  import('../features/mock-exams/ui/review-page').then((module) => ({
+    default: module.ReviewPage,
+  })),
+);
 const PerformancePage = lazy(() =>
   import('../features/performance/ui/performance-page').then((module) => ({
     default: module.PerformancePage,
@@ -96,7 +101,11 @@ function RouteEffects() {
       '/admin/questoes': 'Banco de questões',
       '/admin/questoes/nova': 'Nova questão',
     };
-    const fallback = location.pathname.startsWith('/admin/') ? 'Administração' : 'Meu simulado';
+    const fallback = location.pathname.startsWith('/admin/')
+      ? 'Administração'
+      : location.pathname.endsWith('/revisao')
+        ? 'Revisão do simulado'
+        : 'Meu simulado';
     document.title = `${names[location.pathname] ?? fallback} · Pontuo`;
   }, [location.pathname]);
   return null;
@@ -116,6 +125,7 @@ export function AppRouter() {
               <Route path="simulados/novo" element={<BuilderPage />} />
               <Route path="simulados/:id/execucao" element={<SessionPage />} />
               <Route path="simulados/:id/resultado" element={<ResultPage />} />
+              <Route path="simulados/:id/revisao" element={<ReviewPage />} />
               <Route path="desempenho" element={<PerformancePage />} />
               <Route path="admin" element={<RequireAdmin />}>
                 <Route index element={<AdminOverviewPage />} />

@@ -32,16 +32,17 @@ Para personalizar, copie `.env.example` para `.env.local` e ajuste as URLs. Os p
 - Cadastro, login, restauração da sessão, expiração e logout com revogação.
 - Visão geral com indicadores reais, evolução, disciplinas para reforçar e simulados recentes.
 - Montagem por área, disciplina, assunto, vestibular e dificuldade, com filtros combinados, quantidade disponível e tempo configurável.
-- Execução com início explícito, cronômetro por prazo, navegação, salvamento confirmado, limpeza de resposta, retomada e finalização automática.
+- Execução com início explícito, cronômetro por prazo, navegação, salvamento confirmado, limpeza de resposta, retomada e finalização automática, inclusive ao abrir o resultado de um simulado com tempo esgotado.
 - Histórico com busca pelo nome na API, filtro por situação, paginação, edição e exclusão confirmada.
 - Resultado calculado no backend, acertos/erros/em branco, conferência das respostas e desempenho por disciplina.
+- Revisão depois de finalizar: questão por questão, com a alternativa marcada, a correta e a resolução comentada.
 - Análise por área, disciplina, assunto e dificuldade, evolução com tabela alternativa e assuntos para reforçar.
 - Painel administrativo, visível só para o perfil administrador: cadastro, edição e exclusão de áreas, disciplinas, assuntos, instituições (com endereço), vestibulares e questões com alternativas, gabarito e imagens, com busca e paginação no servidor.
 - Layout responsivo, teclado, foco, estados de carregamento/erro/vazio e movimento reduzido.
 
-A conferência exibe **a alternativa marcada e se ela estava correta**. A API não informa a alternativa correta ao estudante quando ele erra ou deixa em branco; o frontend não inventa um gabarito. Veja [Análise da API](docs/analise-api.md).
+O gabarito e a resolução só chegam ao estudante depois da finalização, pela rota de revisão da API. Veja [Análise da API](docs/analise-api.md).
 
-A tela de revisão de erros continua fora do MVP. Não foram criadas tabelas de agregação nem tabelas de filtros do simulado.
+Não foram criadas tabelas de agregação nem tabelas de filtros do simulado.
 
 ## Organização
 

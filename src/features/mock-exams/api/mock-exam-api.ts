@@ -7,11 +7,12 @@ import type {
   QuestionImage,
 } from '../../catalog/domain/catalog';
 import type {
-  AnswerResult,
   MockExam,
   MockExamInput,
   MockExamResult,
   MockExamSession,
+  ReviewItem,
+  ReviewOption,
   SessionQuestion,
 } from '../domain/mock-exam';
 
@@ -21,6 +22,14 @@ interface LinkDto {
   question: QuestionDto;
   answerOption: AnswerOption | null;
   correct: boolean | null;
+}
+interface ReviewDto {
+  id: number;
+  correct: boolean | null;
+  selectedAnswerOptionId: number | null;
+  question: QuestionDto & { explanation: string | null };
+  images: QuestionImage[];
+  answerOptions: ReviewOption[];
 }
 function sessionQuestion(link: LinkDto, question: Question): SessionQuestion {
   return { id: link.id, question, answerOptionId: link.answerOption?.id ?? null };
@@ -48,6 +57,7 @@ function safeQuestion(
 export function createMockExamApi(http: HttpClient) {
   // Cache de conteúdo público autenticado, limitado ao último sorteio; nunca guarda respostas.
   const questionCache = new Map<number, Question>();
+  const finishing = new Map<number, Promise<MockExamResult>>();
   return {
     // A API filtra pelo nome e ordena por id crescente; as telas mostram os mais recentes primeiro.
     async list(filter: { userId: number; search?: string }, signal?: AbortSignal) {
@@ -60,7 +70,16 @@ export function createMockExamApi(http: HttpClient) {
       http<MockExam>(`/mock-exams/${id}`, { method: 'PUT', body }),
     remove: (id: number) => http<void>(`/mock-exams/${id}`, { method: 'DELETE' }),
     start: (id: number) => http<MockExam>(`/mock-exams/${id}/start`, { method: 'POST' }),
-    finish: (id: number) => http<MockExamResult>(`/mock-exams/${id}/finish`, { method: 'POST' }),
+    finish(id: number): Promise<MockExamResult> {
+      // Execução e resultado podem finalizar o mesmo simulado ao mesmo tempo; um POST basta.
+      const pending =
+        finishing.get(id) ??
+        http<MockExamResult>(`/mock-exams/${id}/finish`, { method: 'POST' }).finally(() =>
+          finishing.delete(id),
+        );
+      finishing.set(id, pending);
+      return pending;
+    },
     result: (id: number, signal?: AbortSignal) =>
       http<MockExamResult>(`/mock-exams/${id}/result`, { signal }),
     async draw(filter: QuestionFilter, size: number): Promise<Question[]> {
@@ -117,21 +136,17 @@ export function createMockExamApi(http: HttpClient) {
       }
       return { mockExam, questions };
     },
-    async answerResults(id: number, signal?: AbortSignal): Promise<AnswerResult[]> {
-      const links = await listAll<LinkDto>(
-        http,
-        '/mock-exam-questions',
-        { mockExamId: id },
-        signal,
+    // Só para simulado finalizado (409 antes). Vem na ordem da prova, com alternativas por letra.
+    async review(id: number, signal?: AbortSignal): Promise<ReviewItem[]> {
+      const items = await http<ReviewDto[]>(`/mock-exams/${id}/review`, { signal });
+      return items.map(
+        ({ id, correct, selectedAnswerOptionId, question, images, answerOptions }) => ({
+          id,
+          correct,
+          selectedAnswerOptionId,
+          question: { ...question, images, answerOptions },
+        }),
       );
-      return [...links]
-        .sort((a, b) => a.id - b.id)
-        .map((link) => ({
-          id: link.id,
-          questionId: link.question.id,
-          answerLetter: link.answerOption?.letter ?? null,
-          correct: link.correct,
-        }));
     },
   };
 }

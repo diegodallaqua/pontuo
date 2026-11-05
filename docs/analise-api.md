@@ -20,11 +20,13 @@ na consulta dos vínculos respondidos. As consultas gerais de questões,
 alternativas e imagens devolvem a explicação nula para estudantes; o
 administrador conserva o acesso para revisão.
 
-## 2. Resultado sem gabarito completo
+## 2. Gabarito após a finalização — corrigido
 
-`MockExamResultResponseDTO` contém `mockExam` e `subjects`. O vínculo informa alternativa marcada e `correct`, mas não qual é a correta quando há erro ou resposta em branco. `rightAnswer` continua reservado ao administrador mesmo após finalizar.
+Antes, o vínculo informava a alternativa marcada e `correct`, mas não qual era a correta quando havia erro ou resposta em branco, e `rightAnswer` ficava reservado ao administrador.
 
-O frontend entrega nota, análise por disciplina e **conferência das respostas enviadas**. Um gabarito completo requer um contrato de resultado autorizado após finalizar que informe a alternativa certa. É uma lacuna do contrato do resultado, distinta da tela de revisão de erros, mantida fora do escopo.
+Em **04/11/2026** a API ganhou `GET /mock-exams/{id}/review`, só para o dono ou o administrador e só depois da finalização (`409` antes). Ela devolve, numa única requisição, enunciado, resolução, imagens e todas as alternativas com `rightAnswer`. O frontend usa essa rota na conferência do resultado e na tela de revisão.
+
+`correct` fica congelado na finalização, enquanto `rightAnswer` reflete o gabarito atual; uma correção posterior do gabarito faz os dois divergirem, e a interface sinaliza o caso. Como o gabarito chega ao estudante depois de qualquer simulado finalizado, um simulado curto revela as respostas das questões sorteadas. É o custo da revisão; o sorteio entre muitas questões reduz o efeito.
 
 ## 3. Prazo e configuração — bloqueio implementado na API
 
@@ -35,7 +37,10 @@ ser pedida após o vencimento e grava `finishedAt` no horário limite.
 O React continua tentando finalizar com a página aberta ou ao retomar. Não há
 finalização em segundo plano com o navegador fechado: um simulado vencido
 permanece sem boletim até uma chamada a `finish`, embora respostas tardias já
-sejam recusadas pelo servidor.
+sejam recusadas pelo servidor. Histórico e visão geral marcam esse simulado como
+"Tempo esgotado" e levam direto ao resultado, que chama `finish` antes de exibir
+o boletim; a revisão segue o mesmo caminho. Até alguém abrir o resultado,
+o simulado não entra na análise de desempenho.
 
 ## 4. Datas sem fuso
 
@@ -71,7 +76,7 @@ Desde 02/11/2026 todas as listagens são paginadas e aceitam `search`, sempre em
 
 A classificação por disciplina/assunto é a atual. Reclassificar uma questão pode mudar distribuições históricas, embora `is_correct` permaneça congelado. É um compromisso já presente no modelo.
 
-O painel exige pelo menos cinco questões por disciplina para sugerir foco; `/weak-topics` usa `minQuestions=5`. Detalhamentos sinalizam amostras pequenas. Não foram criadas tabelas de agregação ou filtros, e a revisão de erros continua fora do MVP.
+O painel exige pelo menos cinco questões por disciplina para sugerir foco; `/weak-topics` usa `minQuestions=5`. Detalhamentos sinalizam amostras pequenas. Não foram criadas tabelas de agregação ou filtros.
 
 ## Limite da validação
 

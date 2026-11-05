@@ -52,4 +52,40 @@ describe('adaptação da sessão', () => {
       signal: undefined,
     });
   });
+  it('compartilha uma finalização em andamento do mesmo simulado', async () => {
+    const http = vi.fn<HttpClient>().mockResolvedValue({ mockExam: { id: 5 } }) as HttpClient;
+    const api = createMockExamApi(http);
+    const [first, second] = await Promise.all([api.finish(5), api.finish(5)]);
+    expect(first).toBe(second);
+    expect(http).toHaveBeenCalledOnce();
+    await api.finish(5);
+    expect(http).toHaveBeenCalledTimes(2);
+  });
+  it('monta a revisão com imagens e gabarito dentro da questão', async () => {
+    const http = vi.fn<HttpClient>().mockResolvedValue([
+      {
+        id: 3,
+        answeredAt: null,
+        correct: null,
+        selectedAnswerOptionId: null,
+        question: { id: 1, statement: 'Pergunta', explanation: 'Porque sim.' },
+        images: [{ id: 7, url: '/a.png', subtitle: null }],
+        answerOptions: [{ id: 10, letter: 'A', text: '4', rightAnswer: true }],
+      },
+    ]) as HttpClient;
+    const [item] = await createMockExamApi(http).review(8);
+    expect(http).toHaveBeenCalledWith('/mock-exams/8/review', { signal: undefined });
+    expect(item).toEqual({
+      id: 3,
+      correct: null,
+      selectedAnswerOptionId: null,
+      question: {
+        id: 1,
+        statement: 'Pergunta',
+        explanation: 'Porque sim.',
+        images: [{ id: 7, url: '/a.png', subtitle: null }],
+        answerOptions: [{ id: 10, letter: 'A', text: '4', rightAnswer: true }],
+      },
+    });
+  });
 });
