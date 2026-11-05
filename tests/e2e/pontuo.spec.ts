@@ -155,6 +155,30 @@ test('edita e exclui pelo histórico com confirmação', async ({ page }) => {
   expect(state.exams).toHaveLength(0);
 });
 
+test('histórico busca o nome na API e mantém situação e ordem na tela', async ({ page }) => {
+  const state = await mockContractApi(page, { history: true });
+  await page.goto('/simulados');
+  const titles = page.locator('.history-card h2');
+  await expect(titles).toHaveText([
+    'ENEM · Ciências da Natureza',
+    'Matemática: um passo à frente',
+    'Meu treino de Biologia',
+    'ENEM · Conhecimentos gerais',
+  ]);
+  await page.getByLabel('Buscar simulado').fill('enem');
+  await expect(titles).toHaveText(['ENEM · Ciências da Natureza', 'ENEM · Conhecimentos gerais']);
+  const lists = state.requests.filter(
+    (request) => request.path === '/mock-exams' && request.method === 'GET',
+  );
+  expect(lists.at(-1)?.query).toEqual({ userId: '7', search: 'enem', page: '1', limit: '100' });
+  await page.getByRole('button', { name: 'Finalizados' }).click();
+  await expect(titles).toHaveText(['ENEM · Conhecimentos gerais']);
+  await page.getByLabel('Buscar simulado').fill('redação');
+  await expect(page.getByRole('heading', { name: 'Nenhum simulado neste recorte' })).toBeVisible();
+  await page.getByRole('button', { name: 'Limpar filtros' }).click();
+  await expect(titles).toHaveCount(4);
+});
+
 test('401 encerra a sessão e mantém o destino para novo login', async ({ page }) => {
   const state = await mockContractApi(page);
   state.unauthorizedPath = '/mock-exams';

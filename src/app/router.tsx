@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Link, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { useAuth } from '../features/auth/application/auth-context';
+import { isAdministrator } from '../features/auth/domain/auth';
 import { Button, ErrorState, Loading } from '../shared/ui/components';
 import { AppLayout } from './layout';
 
@@ -37,6 +38,26 @@ const PerformancePage = lazy(() =>
     default: module.PerformancePage,
   })),
 );
+const AdminOverviewPage = lazy(() =>
+  import('../features/admin/ui/overview-page').then((module) => ({
+    default: module.AdminOverviewPage,
+  })),
+);
+const QuestionsAdminPage = lazy(() =>
+  import('../features/admin/ui/questions-page').then((module) => ({
+    default: module.QuestionsAdminPage,
+  })),
+);
+const QuestionEditorPage = lazy(() =>
+  import('../features/admin/ui/question-editor-page').then((module) => ({
+    default: module.QuestionEditorPage,
+  })),
+);
+const CatalogAdminPage = lazy(() =>
+  import('../features/admin/ui/catalog-page').then((module) => ({
+    default: module.CatalogAdminPage,
+  })),
+);
 
 function RequireAuth() {
   const { hasSession, loading, error, retry, logout } = useAuth();
@@ -55,6 +76,11 @@ function RequireAuth() {
     );
   return <Outlet />;
 }
+// Esconde a área administrativa de quem não tem o perfil; a API recusa as escritas com 403.
+function RequireAdmin() {
+  const { user } = useAuth();
+  return isAdministrator(user) ? <Outlet /> : <Navigate to="/" replace />;
+}
 function RouteEffects() {
   const location = useLocation();
   useEffect(() => {
@@ -66,8 +92,12 @@ function RouteEffects() {
       '/simulados': 'Meus simulados',
       '/simulados/novo': 'Criar simulado',
       '/desempenho': 'Meu desempenho',
+      '/admin': 'Administração',
+      '/admin/questoes': 'Banco de questões',
+      '/admin/questoes/nova': 'Nova questão',
     };
-    document.title = `${names[location.pathname] ?? 'Meu simulado'} · Pontuo`;
+    const fallback = location.pathname.startsWith('/admin/') ? 'Administração' : 'Meu simulado';
+    document.title = `${names[location.pathname] ?? fallback} · Pontuo`;
   }, [location.pathname]);
   return null;
 }
@@ -87,6 +117,14 @@ export function AppRouter() {
               <Route path="simulados/:id/execucao" element={<SessionPage />} />
               <Route path="simulados/:id/resultado" element={<ResultPage />} />
               <Route path="desempenho" element={<PerformancePage />} />
+              <Route path="admin" element={<RequireAdmin />}>
+                <Route index element={<AdminOverviewPage />} />
+                <Route path="questoes" element={<QuestionsAdminPage />} />
+                <Route path="questoes/nova" element={<QuestionEditorPage />} />
+                <Route path="questoes/:id" element={<QuestionEditorPage />} />
+                <Route path="catalogo" element={<Navigate to="areas" replace />} />
+                <Route path="catalogo/:section" element={<CatalogAdminPage />} />
+              </Route>
             </Route>
           </Route>
           <Route

@@ -13,17 +13,15 @@ import {
 } from '../../../shared/ui/components';
 import { errorMessage } from '../../../shared/lib/http';
 import { formatTimer } from '../../../shared/lib/date';
-import { questionSubject, type QuestionImage } from '../../catalog/domain/catalog';
+import { isSafeImageUrl, questionSubject, type QuestionImage } from '../../catalog/domain/catalog';
 import type { MockExamSession } from '../domain/mock-exam';
 import { useExamRunner } from '../application/use-exam-runner';
 
 function QuestionFigure({ image }: { image: QuestionImage }) {
   const [failed, setFailed] = useState(false);
-  const safe =
-    /^https?:\/\//i.test(image.url) || (image.url.startsWith('/') && !image.url.startsWith('//'));
   return (
     <figure>
-      {safe && !failed ? (
+      {isSafeImageUrl(image.url) && !failed ? (
         <img
           src={image.url}
           alt={image.subtitle || 'Imagem que integra o enunciado da questão'}

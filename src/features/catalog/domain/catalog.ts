@@ -52,6 +52,11 @@ export interface Question {
   answerOptions: AnswerOption[];
   images: QuestionImage[];
 }
+export const difficultyLabels: Record<number, string> = { 1: 'Fácil', 2: 'Média', 3: 'Difícil' };
+// Só endereços http(s) ou relativos ao próprio site; bloqueia javascript:, data: e //host.
+export function isSafeImageUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url) || (url.startsWith('/') && !url.startsWith('//'));
+}
 export function questionSubject(question: Pick<Question, 'topic' | 'subject'>): Subject | null {
   return question.topic?.subject ?? question.subject;
 }

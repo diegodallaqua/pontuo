@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { createHttpClient } from '../shared/lib/http';
+import { createAdminApi } from '../features/admin/api/admin-api';
 import { createAuthApi } from '../features/auth/api/auth-api';
 import { sessionStore } from '../features/auth/api/session-store';
 import { createCatalogApi } from '../features/catalog/api/catalog-api';
@@ -12,6 +13,7 @@ const http = createHttpClient({
   onUnauthorized: () => sessionStore.set(null),
 });
 const services = {
+  admin: createAdminApi(http),
   auth: createAuthApi(http),
   catalog: createCatalogApi(http),
   mockExams: createMockExamApi(http),

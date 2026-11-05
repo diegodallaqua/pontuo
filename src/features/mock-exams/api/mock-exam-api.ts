@@ -1,4 +1,5 @@
 import type { HttpClient } from '../../../shared/lib/http';
+import { listAll } from '../../../shared/lib/pagination';
 import type {
   AnswerOption,
   Question,
@@ -48,8 +49,11 @@ export function createMockExamApi(http: HttpClient) {
   // Cache de conteúdo público autenticado, limitado ao último sorteio; nunca guarda respostas.
   const questionCache = new Map<number, Question>();
   return {
-    list: (userId: number, signal?: AbortSignal) =>
-      http<MockExam[]>('/mock-exams', { query: { userId }, signal }),
+    // A API filtra pelo nome e ordena por id crescente; as telas mostram os mais recentes primeiro.
+    async list(filter: { userId: number; search?: string }, signal?: AbortSignal) {
+      const exams = await listAll<MockExam>(http, '/mock-exams', filter, signal);
+      return exams.sort((a, b) => b.id - a.id);
+    },
     get: (id: number, signal?: AbortSignal) => http<MockExam>(`/mock-exams/${id}`, { signal }),
     create: (body: MockExamInput) => http<MockExam>('/mock-exams', { method: 'POST', body }),
     update: (id: number, body: MockExamInput) =>
@@ -89,7 +93,7 @@ export function createMockExamApi(http: HttpClient) {
     async loadSession(id: number, signal?: AbortSignal): Promise<MockExamSession> {
       const [mockExam, links] = await Promise.all([
         http<MockExam>(`/mock-exams/${id}`, { signal }),
-        http<LinkDto[]>('/mock-exam-questions', { query: { mockExamId: id }, signal }),
+        listAll<LinkDto>(http, '/mock-exam-questions', { mockExamId: id }, signal),
       ]);
       if (mockExam.finishedAt) return { mockExam, questions: [] };
       const ordered = [...links].sort((a, b) => a.id - b.id);
@@ -103,8 +107,8 @@ export function createMockExamApi(http: HttpClient) {
               if (cached) return sessionQuestion(link, cached);
               const query = { questionId: link.question.id };
               const [options, images] = await Promise.all([
-                http<AnswerOption[]>('/answer-options', { query, signal }),
-                http<QuestionImage[]>('/question-images', { query, signal }),
+                listAll<AnswerOption>(http, '/answer-options', query, signal),
+                listAll<QuestionImage>(http, '/question-images', query, signal),
               ]);
               return sessionQuestion(link, safeQuestion(link.question, options, images));
             }),
@@ -114,10 +118,12 @@ export function createMockExamApi(http: HttpClient) {
       return { mockExam, questions };
     },
     async answerResults(id: number, signal?: AbortSignal): Promise<AnswerResult[]> {
-      const links = await http<LinkDto[]>('/mock-exam-questions', {
-        query: { mockExamId: id },
+      const links = await listAll<LinkDto>(
+        http,
+        '/mock-exam-questions',
+        { mockExamId: id },
         signal,
-      });
+      );
       return [...links]
         .sort((a, b) => a.id - b.id)
         .map((link) => ({

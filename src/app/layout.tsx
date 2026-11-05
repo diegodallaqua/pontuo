@@ -4,21 +4,49 @@ import {
   ArrowUpRight,
   ChartNoAxesCombined,
   ClipboardList,
+  FileQuestionMark,
   LayoutDashboard,
+  Library,
   LogOut,
   Menu,
   Plus,
+  ShieldCheck,
   X,
   Sparkles,
+  type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../features/auth/application/auth-context';
+import { isAdministrator } from '../features/auth/domain/auth';
 import { Brand, Button } from '../shared/ui/components';
 
-const navigation = [
+type NavigationItem = { to: string; label: string; icon: LucideIcon; end: boolean };
+const navigation: NavigationItem[] = [
   { to: '/', label: 'Visão geral', icon: LayoutDashboard, end: true },
   { to: '/simulados', label: 'Meus simulados', icon: ClipboardList, end: true },
   { to: '/desempenho', label: 'Meu desempenho', icon: ChartNoAxesCombined, end: false },
 ];
+const adminNavigation: NavigationItem[] = [
+  { to: '/admin', label: 'Painel admin', icon: ShieldCheck, end: true },
+  { to: '/admin/questoes', label: 'Questões', icon: FileQuestionMark, end: false },
+  { to: '/admin/catalogo', label: 'Catálogo', icon: Library, end: false },
+];
+function NavigationLinks({ label, items }: { label: string; items: NavigationItem[] }) {
+  return (
+    <nav aria-label={label}>
+      {items.map(({ to, label, icon: Icon, end }) => (
+        <NavLink
+          to={to}
+          end={end}
+          key={to}
+          className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`}
+        >
+          <Icon size={20} />
+          <span>{label}</span>
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
 export function AppLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -69,8 +97,12 @@ export function AppLayout() {
     const revoked = await logout();
     navigate('/entrar', { replace: true, state: { logoutWarning: !revoked } });
   }
-  const currentLabel =
-    location.pathname === '/'
+  const administrator = isAdministrator(user);
+  const inAdmin = location.pathname.startsWith('/admin');
+  const currentLabel = inAdmin
+    ? (adminNavigation.findLast((item) => location.pathname.startsWith(item.to))?.label ??
+      'Painel admin')
+    : location.pathname === '/'
       ? 'Visão geral'
       : location.pathname === '/desempenho'
         ? 'Meu desempenho'
@@ -95,23 +127,17 @@ export function AppLayout() {
           </button>
         </div>
         <span className="sidebar-label">SUA PREPARAÇÃO</span>
-        <nav aria-label="Navegação principal">
-          {navigation.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              to={to}
-              end={end}
-              key={to}
-              className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`}
-            >
-              <Icon size={20} />
-              <span>{label}</span>
-            </NavLink>
-          ))}
-        </nav>
+        <NavigationLinks label="Navegação principal" items={navigation} />
         <Link className="button button-primary sidebar-create" to="/simulados/novo">
           <Plus size={18} />
           Criar simulado
         </Link>
+        {administrator && (
+          <>
+            <span className="sidebar-label">ADMINISTRAÇÃO</span>
+            <NavigationLinks label="Administração" items={adminNavigation} />
+          </>
+        )}
         <div className="sidebar-bottom">
           <div className="sidebar-note">
             <Sparkles size={22} />
@@ -129,7 +155,7 @@ export function AppLayout() {
             <span className="avatar">{user?.username.slice(0, 2).toUpperCase()}</span>
             <div>
               <strong>{user?.username}</strong>
-              <small>Minha preparação</small>
+              <small>{administrator ? 'Administrador' : 'Minha preparação'}</small>
             </div>
             <Button
               variant="ghost"
@@ -155,7 +181,7 @@ export function AppLayout() {
             >
               <Menu size={22} />
             </button>
-            <span className="muted">Minha jornada</span>
+            <span className="muted">{inAdmin ? 'Administração' : 'Minha jornada'}</span>
             <span className="path-divider">/</span>
             <strong>{currentLabel}</strong>
           </div>

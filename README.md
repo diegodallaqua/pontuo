@@ -33,9 +33,10 @@ To customize the configuration, copy `.env.example` to `.env.local` and adjust t
 - Dashboard with real metrics, progress over time, subjects to revisit, and recent practice exams.
 - Exam setup by knowledge area, subject, topic, entrance exam, and difficulty, with combined filters, available question count, and configurable duration.
 - Exam sessions with an explicit start, deadline timer, navigation, confirmed answer saving, answer clearing, resume, and automatic completion.
-- History with search, filters, local pagination, editing, and confirmed deletion.
+- History with server-side name search, status filter, pagination, editing, and confirmed deletion.
 - Server-calculated results, correct/incorrect/unanswered counts, answer review, and performance by subject.
 - Analysis by knowledge area, subject, topic, and difficulty, plus progress with a table alternative and topics to revisit.
+- Admin panel, shown only to administrators: create, edit, and delete knowledge areas, subjects, topics, institutions (with their address), entrance exams, and questions with answer options, answer key, and images, using server-side search and pagination.
 - Responsive layout, keyboard and focus support, loading/error/empty states, and reduced-motion support.
 
 The answer review shows **which option the student selected and whether it was correct**. When an answer is wrong or blank, the API does not tell the student which option was correct; the frontend does not invent an answer key. See the [API analysis (Portuguese)](docs/analise-api.md).
@@ -48,13 +49,14 @@ An error-review page remains outside the MVP. No aggregation tables or exam-filt
 src/
   app/                     composition, providers, routes, layout, and global styles
   features/
+    admin/                 admin panel: catalog, questions, answer key, and images
     auth/                  authentication, sessions, and access forms
     catalog/               types and queries for filters
     dashboard/             dashboard composition
     mock-exams/             setup, sessions, history, and results
     performance/            metrics, analysis, and charts
   shared/
-    lib/                   HTTP transport, errors, and dates
+    lib/                   HTTP transport, pagination, errors, and dates
     hooks/                 cancellable asynchronous loading
     ui/                    reusable visual components
 tests/e2e/                 browser flows with a simulated contract API
@@ -78,7 +80,7 @@ npm run test:e2e
 npm run format:check
 ```
 
-Unit tests cover exam setup, compensating actions, HTTP, answer-key isolation, dates, and analysis. Browser tests use fixtures in `tests/e2e/contract-api.ts` and do not write to MariaDB. Playwright starts and stops Vite as needed; local screenshots go into `.artifacts/`, which Git ignores.
+Unit tests cover exam setup, compensating actions, HTTP, answer-key isolation, dates, analysis, pagination, and the admin use cases. Browser tests use fixtures in `tests/e2e/contract-api.ts` and `tests/e2e/admin-api.ts` and do not write to MariaDB. Playwright starts and stops Vite as needed; local screenshots go into `.artifacts/`, which Git ignores.
 
 See [validation (Portuguese)](docs/validacao.md). The contracts were checked against local Java code; **integration with a running Spring/MariaDB backend was not tested**, because the API was unavailable at `localhost:8080`.
 

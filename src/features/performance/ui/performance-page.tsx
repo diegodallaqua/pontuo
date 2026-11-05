@@ -19,6 +19,7 @@ import {
   type PerformanceFilter,
   type PerformanceItem,
 } from '../domain/performance';
+import { difficultyLabels } from '../../catalog/domain/catalog';
 import { EvolutionChart } from './evolution-chart';
 
 function Breakdown({
@@ -30,7 +31,6 @@ function Breakdown({
   items: PerformanceItem[];
   difficulty?: boolean;
 }) {
-  const labels: Record<number, string> = { 1: 'Fácil', 2: 'Média', 3: 'Difícil' };
   return (
     <section className="panel">
       <h2>{title}</h2>
@@ -41,7 +41,7 @@ function Breakdown({
               key={item.id}
               label={
                 difficulty
-                  ? (labels[item.id] ?? 'Não informada')
+                  ? (difficultyLabels[item.id] ?? 'Não informada')
                   : (item.description ?? 'Não informado')
               }
               value={item.accuracy}

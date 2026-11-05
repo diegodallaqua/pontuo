@@ -68,6 +68,15 @@ export function makeExam(patch: Partial<MockExam> = {}): MockExam {
     ...patch,
   };
 }
+export async function startSession(page: Page) {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('pontuo.session.v1'))
+      sessionStorage.setItem(
+        'pontuo.session.v1',
+        JSON.stringify({ accessToken: 'contract-test-token', expiresAt: Date.now() + 7_200_000 }),
+      );
+  });
+}
 export async function mockContractApi(
   page: Page,
   options: { authenticated?: boolean; history?: boolean; exam?: MockExam } = {},
@@ -138,14 +147,7 @@ export async function mockContractApi(
       answerOption: null,
       correct: null,
     }));
-  if (options.authenticated !== false)
-    await page.addInitScript(() => {
-      if (!sessionStorage.getItem('pontuo.session.v1'))
-        sessionStorage.setItem(
-          'pontuo.session.v1',
-          JSON.stringify({ accessToken: 'contract-test-token', expiresAt: Date.now() + 7_200_000 }),
-        );
-    });
+  if (options.authenticated !== false) await startSession(page);
   await page.route(
     (url) => url.pathname.startsWith('/api/'),
     async (route) => {
@@ -159,6 +161,22 @@ export async function mockContractApi(
         status === 204
           ? route.fulfill({ status })
           : route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(data) });
+      // Listagens seguem o envelope da API: page a partir de 1 e limit de 1 a 100.
+      const paginate = (items: unknown[]) => {
+        const page = Number(url.searchParams.get('page') ?? 1);
+        const limit = Number(url.searchParams.get('limit') ?? 20);
+        if (!(page >= 1) || !(limit >= 1 && limit <= 100))
+          return respond({ page: 'page ou limit fora da faixa' }, 400);
+        const totalPages = Math.ceil(items.length / limit);
+        return respond({
+          content: items.slice((page - 1) * limit, page * limit),
+          page,
+          limit,
+          totalElements: items.length,
+          totalPages,
+          last: page >= totalPages,
+        });
+      };
       if (path === state.unauthorizedPath) return respond({ message: 'Token expirado' }, 401);
       if (path === state.forbiddenPath) return respond({ message: 'Acesso negado' }, 403);
       if (path === '/auth/me') return respond(user);
@@ -174,33 +192,32 @@ export async function mockContractApi(
         state.logoutCalls++;
         return respond(null, 204);
       }
-      if (path === '/knowledge-areas') return respond(knowledgeAreas);
-      if (path === '/subjects') return respond(subjects);
-      if (path === '/topics') return respond(topics);
-      if (path === '/entrance-exams') return respond(entranceExams);
-      if (path === '/questions')
-        return respond({
-          content: [],
-          page: 0,
-          size: 1,
-          totalElements: state.emptyCatalog ? 0 : 2,
-          totalPages: 2,
-          last: false,
-        });
+      if (path === '/knowledge-areas') return paginate(knowledgeAreas);
+      if (path === '/subjects') return paginate(subjects);
+      if (path === '/topics') return paginate(topics);
+      if (path === '/entrance-exams') return paginate(entranceExams);
+      if (path === '/questions') return paginate(state.emptyCatalog ? [] : questions);
       if (path === '/questions/draw') return respond(state.emptyCatalog ? [] : questions);
       if (path === '/answer-options')
-        return respond(
+        return paginate(
           questions.find((item) => item.id === Number(url.searchParams.get('questionId')))
             ?.answerOptions ?? [],
         );
-      if (path === '/question-images') return respond([]);
-      if (path === '/mock-exams' && method === 'GET') return respond(state.exams);
+      if (path === '/question-images') return paginate([]);
+      if (path === '/mock-exams' && method === 'GET') {
+        const search = url.searchParams.get('search')?.toLocaleLowerCase('pt-BR') ?? '';
+        return paginate(
+          state.exams
+            .filter((exam) => exam.name.toLocaleLowerCase('pt-BR').includes(search))
+            .sort((a, b) => a.id - b.id),
+        );
+      }
       if (path === '/mock-exams' && method === 'POST') {
         const exam = makeExam(body as unknown as Partial<MockExam>);
         state.exams.push(exam);
         return respond(exam, 201);
       }
-      if (path === '/mock-exam-questions' && method === 'GET') return respond(state.links);
+      if (path === '/mock-exam-questions' && method === 'GET') return paginate(state.links);
       if (path === '/mock-exam-questions' && method === 'POST') {
         const question = questions.find((item) => item.id === body?.questionId)!;
         const link = {

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useServices } from '../../../app/services';
 import { useAuth } from '../../auth/application/auth-context';
+import { useDebouncedValue } from '../../../shared/hooks/use-debounced-value';
 import { useResource } from '../../../shared/hooks/use-resource';
 import {
   Button,
@@ -35,14 +36,15 @@ import {
 export function HistoryPage() {
   const { mockExams } = useServices();
   const { user } = useAuth();
+  const [search, setSearch] = useState('');
+  const term = useDebouncedValue(search.trim());
+  // Busca no servidor; situação e ordem ficam na tela, pois a API não filtra nem ordena por elas.
   const resource = useResource(
     useCallback(
-      async (signal: AbortSignal) =>
-        (await mockExams.list(user!.id, signal)).sort((a, b) => b.id - a.id),
-      [mockExams, user],
+      (signal: AbortSignal) => mockExams.list({ userId: user!.id, search: term }, signal),
+      [mockExams, user, term],
     ),
   );
-  const [search, setSearch] = useState('');
   const [status, setStatus] = useState<MockExamStatus | 'all'>('all');
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<{ exam: MockExam; action: 'edit' | 'delete' } | null>(
@@ -51,13 +53,11 @@ export function HistoryPage() {
   const [notice, setNotice] = useState('');
   useEffect(() => {
     setPage(0);
-  }, [search, status]);
+  }, [term, status]);
   const filtered =
-    resource.data?.filter(
-      (exam) =>
-        (status === 'all' || mockExamStatus(exam) === status) &&
-        exam.name.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')),
-    ) ?? [];
+    resource.data?.filter((exam) => status === 'all' || mockExamStatus(exam) === status) ?? [];
+  // Há simulados fora do recorte: a busca ou a situação escondeu todos.
+  const narrowed = !!term || !!resource.data?.length;
   const pages = Math.max(1, Math.ceil(filtered.length / 9));
   const currentPage = Math.min(page, pages - 1);
   function updated(message: string) {
@@ -103,6 +103,7 @@ export function HistoryPage() {
           <span className="sr-only">Buscar simulado</span>
           <input
             placeholder="Buscar pelo nome…"
+            maxLength={100}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -115,16 +116,14 @@ export function HistoryPage() {
       ) : !filtered.length ? (
         <section className="panel">
           <EmptyState
-            title={
-              resource.data?.length ? 'Nenhum simulado neste recorte' : 'O primeiro passo é seu.'
-            }
+            title={narrowed ? 'Nenhum simulado neste recorte' : 'O primeiro passo é seu.'}
             description={
-              resource.data?.length
+              narrowed
                 ? 'Experimente outro nome ou outra situação.'
                 : 'Escolha o que quer praticar e prepare seu primeiro simulado.'
             }
             action={
-              resource.data?.length ? (
+              narrowed ? (
                 <Button
                   variant="secondary"
                   onClick={() => {

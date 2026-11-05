@@ -13,27 +13,33 @@ Base local: `/api`, encaminhada pelo Vite para `http://localhost:8080`. Todas as
 
 O cadastro valida senha com mínimo de 8 caracteres e limite de 72 bytes para BCrypt. Não há segredo de assinatura no cliente.
 
+## Listagens
+
+Todo `GET /<recurso>` sem id é paginado: `page` começa em 1, `limit` vai de 1 a 100 (padrão 20) e `search` busca um trecho, sem diferenciar caixa, nos campos de texto do recurso. A resposta é `{ content, page, limit, totalElements, totalPages, last }`, ordenada por id crescente. `/questions/draw` e `/performance/**` não são paginados.
+
+Quando a tela precisa da lista inteira, `listAll` (`shared/lib/pagination.ts`) percorre as páginas com `limit=100` até `last`. Para saber apenas o total, uma página com `limit=1` basta.
+
 ## Catálogo
 
-`GET /knowledge-areas`, `/subjects`, `/topics` e `/entrance-exams` alimentam os filtros. A cascata área → disciplina → assunto é aplicada localmente e limpa seleções incompatíveis.
+`GET /knowledge-areas`, `/subjects`, `/topics` e `/entrance-exams`, percorridos com `listAll`, alimentam os filtros. A cascata área → disciplina → assunto é aplicada localmente e limpa seleções incompatíveis.
 
-`GET /questions?page=0&size=1` obtém `totalElements` de um envelope paginado. `GET /questions/draw` retorna uma lista com `answerOptions` e `images` embutidos, sem resolução.
+`GET /questions?page=1&limit=1` obtém `totalElements` do envelope. `GET /questions/draw` retorna uma lista com `answerOptions` e `images` embutidos, sem resolução.
 
 Ambos combinam `knowledgeAreaId`, `subjectId`, `topicId`, `entranceExamId` e `difficulty` (1–3). Parâmetros vazios são omitidos. `size` do sorteio aceita 1–100; podem vir menos questões que o solicitado.
 
-Na retomada, alternativas e imagens vêm de `/answer-options?questionId=...` e `/question-images?questionId=...`. A API devolve a resolução nula e omite o gabarito para estudantes; o adaptador também os exclui da sessão.
+Na retomada, alternativas e imagens vêm de `/answer-options?questionId=...` e `/question-images?questionId=...`, também percorridos com `listAll`. A API devolve a resolução nula e omite o gabarito para estudantes; o adaptador também os exclui da sessão.
 
 ## Simulados
 
 | Método e rota                             | Contrato                                                                                |
 | ----------------------------------------- | --------------------------------------------------------------------------------------- |
-| `GET /mock-exams?userId=...`              | Histórico pessoal.                                                                      |
+| `GET /mock-exams?userId=...&search=...`   | Histórico pessoal. A busca pelo nome vai à API; situação e ordem são aplicadas na tela. |
 | `POST /mock-exams`                        | `{ name, numQuestions, maxTime }`, tempo em minutos e dono derivado do token.           |
 | `GET /mock-exams/{id}`                    | Metadados e ciclo de vida.                                                              |
 | `PUT /mock-exams/{id}`                    | `{ name, numQuestions, maxTime }`. A tela preserva quantidade e, após início, tempo.    |
 | `DELETE /mock-exams/{id}`                 | Remove simulado e respostas.                                                            |
 | `POST /mock-exam-questions`               | `{ mockExamId, questionId, answerOptionId: null }`.                                     |
-| `GET /mock-exam-questions?mockExamId=...` | Vínculos, questão e alternativa marcada. Ordenação local pelo id do vínculo.            |
+| `GET /mock-exam-questions?mockExamId=...` | Vínculos, questão e alternativa marcada, todas as páginas. Ordem pelo id do vínculo.    |
 | `POST /mock-exams/{id}/start`             | Sem corpo; retorna `MockExam`.                                                          |
 | `PUT /mock-exam-questions/{linkId}`       | `{ mockExamId, questionId, answerOptionId }`; `null` limpa. A rota usa o id do vínculo. |
 | `POST /mock-exams/{id}/finish`            | Sem corpo; retorna `{ mockExam, subjects }`.                                            |
@@ -63,6 +69,31 @@ As consultas usam `/performance/me` e simulados finalizados:
 Datas são inclusivas sobre a finalização. Vestibular não filtra resumo/evolução. Agrupamentos têm `id`, `description`, `questions`, `answered`, `correct`, `accuracy`; dificuldade usa id 1/2/3 e descrição nula.
 
 Resumo: `finishedMockExams`, `questions`, `answered`, `correct`, `accuracy`, `averageDurationMinutes`. Evolução: `mockExamId`, `mockExamName`, `finishedAt`, `questions`, `answered`, `correct`, `accuracy`.
+
+## Administração
+
+As escritas do catálogo exigem o perfil administrador. O menu e as rotas `/admin` só aparecem quando `userRole.description` de `/auth/me`, normalizada como na API, é `ADMINISTRADOR`; a autorização continua no servidor (`403`).
+
+As tabelas pedem 10 registros por página, com `search` e filtros enviados à API; os selects usam `listAll`.
+
+| Recurso            | Corpo de `POST` e `PUT`                                                                   | Filtros usados                              |
+| ------------------ | ----------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `/knowledge-areas` | `description`                                                                             | —                                           |
+| `/subjects`        | `description`, `knowledgeAreaId`                                                          | `knowledgeAreaId`                           |
+| `/topics`          | `description`, `subjectId`                                                                | `subjectId`                                 |
+| `/addresses`       | `street`, `number`, `neighborhood`, `complement`, `cityId`                                | —                                           |
+| `/institutions`    | `name`, `acronym`, `addressId`                                                            | —                                           |
+| `/entrance-exams`  | `name`, `year`, `stage`, `institutionId`                                                  | `institutionId`                             |
+| `/questions`       | `statement`, `explanation`, `difficulty`, `entranceExamId` e `topicId` **ou** `subjectId` | `subjectId`, `entranceExamId`, `difficulty` |
+| `/answer-options`  | `questionId`, `letter` (A–E), `text`, `rightAnswer`                                       | `questionId`                                |
+| `/question-images` | `questionId`, `url`, `subtitle`                                                           | `questionId`                                |
+
+`/states` e `/cities?stateId=...&search=...` só alimentam a escolha da cidade do endereço.
+
+- A instituição depende de um endereço próprio. O cliente cria o endereço e depois a instituição; se a segunda falhar, remove o endereço. Na exclusão, remove a instituição e depois o endereço.
+- A API aceita uma única alternativa correta (`409` na segunda). Para transferir o gabarito, a anterior é desmarcada antes e restaurada se a nova gravação falhar.
+- `409` de integridade ("registro em uso") aparece no diálogo de exclusão. Excluir uma disciplina remove seus assuntos (`ON DELETE CASCADE`); excluir uma questão remove alternativas e imagens.
+- URLs de imagem aceitas: `http(s)://` ou caminho iniciado por `/`.
 
 ## Erros e tempo
 

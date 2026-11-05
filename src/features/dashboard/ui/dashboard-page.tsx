@@ -37,9 +37,9 @@ export function DashboardPage() {
           performance.overview({}, signal),
           performance.breakdown('subjects', {}, signal),
           performance.evolution({}, signal),
-          mockExams.list(user!.id, signal),
+          mockExams.list({ userId: user!.id }, signal),
         ]);
-        return { overview, subjects, evolution, history: history.sort((a, b) => b.id - a.id) };
+        return { overview, subjects, evolution, history };
       },
       [performance, mockExams, user],
     ),

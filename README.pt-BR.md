@@ -33,9 +33,10 @@ Para personalizar, copie `.env.example` para `.env.local` e ajuste as URLs. Os p
 - Visão geral com indicadores reais, evolução, disciplinas para reforçar e simulados recentes.
 - Montagem por área, disciplina, assunto, vestibular e dificuldade, com filtros combinados, quantidade disponível e tempo configurável.
 - Execução com início explícito, cronômetro por prazo, navegação, salvamento confirmado, limpeza de resposta, retomada e finalização automática.
-- Histórico com busca, filtros, paginação local, edição e exclusão confirmada.
+- Histórico com busca pelo nome na API, filtro por situação, paginação, edição e exclusão confirmada.
 - Resultado calculado no backend, acertos/erros/em branco, conferência das respostas e desempenho por disciplina.
 - Análise por área, disciplina, assunto e dificuldade, evolução com tabela alternativa e assuntos para reforçar.
+- Painel administrativo, visível só para o perfil administrador: cadastro, edição e exclusão de áreas, disciplinas, assuntos, instituições (com endereço), vestibulares e questões com alternativas, gabarito e imagens, com busca e paginação no servidor.
 - Layout responsivo, teclado, foco, estados de carregamento/erro/vazio e movimento reduzido.
 
 A conferência exibe **a alternativa marcada e se ela estava correta**. A API não informa a alternativa correta ao estudante quando ele erra ou deixa em branco; o frontend não inventa um gabarito. Veja [Análise da API](docs/analise-api.md).
@@ -48,13 +49,14 @@ A tela de revisão de erros continua fora do MVP. Não foram criadas tabelas de 
 src/
   app/                     composição, providers, rotas, layout e estilos gerais
   features/
+    admin/                 painel administrativo: catálogo, questões, gabarito e imagens
     auth/                  autenticação, sessão e formulários de acesso
     catalog/               tipos e consultas para os filtros
     dashboard/             composição da visão geral
     mock-exams/             montagem, execução, histórico e resultado
     performance/            indicadores, análises e gráfico
   shared/
-    lib/                   transporte HTTP, erros e datas
+    lib/                   transporte HTTP, paginação, erros e datas
     hooks/                 carregamento assíncrono com cancelamento
     ui/                    componentes visuais reutilizáveis
 tests/e2e/                 fluxos de navegador com API simulada por contrato
@@ -78,7 +80,7 @@ npm run test:e2e
 npm run format:check
 ```
 
-Os testes unitários cobrem montagem, compensação, HTTP, isolamento do gabarito, datas e análise. Os testes de navegador usam fixtures em `tests/e2e/contract-api.ts`, sem escrever no MariaDB. O Playwright inicia e encerra o Vite quando precisa; capturas locais ficam em `.artifacts/`, ignorada pelo Git.
+Os testes unitários cobrem montagem, compensação, HTTP, isolamento do gabarito, datas, análise, paginação e os casos de uso da administração. Os testes de navegador usam fixtures em `tests/e2e/contract-api.ts` e `tests/e2e/admin-api.ts`, sem escrever no MariaDB. O Playwright inicia e encerra o Vite quando precisa; capturas locais ficam em `.artifacts/`, ignorada pelo Git.
 
 Consulte [Validação](docs/validacao.md). Os contratos foram conferidos no código Java local; **a integração com Spring/MariaDB reais não foi executada**, pois a API não estava disponível em `localhost:8080`.
 

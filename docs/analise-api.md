@@ -63,7 +63,7 @@ Vínculos não contêm todas as alternativas/imagens. Recarregar custa até `2 +
 
 Um endpoint de sessão completo, sem gabarito, reduziria esse custo. DTOs menores evitariam repetir usuário, endereços e questões aninhadas sem uso na tela.
 
-Só `/questions` tem paginação no servidor. A paginação do histórico é local: melhora a leitura, não reduz a transferência. Paginação no servidor passa a importar com o crescimento do volume.
+Desde 02/11/2026 todas as listagens são paginadas e aceitam `search`, sempre em ordem de id crescente. O histórico envia a busca pelo nome à API, mas ainda percorre todas as páginas do resultado: a API não filtra por situação nem ordena pelos mais recentes, e a tela precisa das duas coisas. Um parâmetro de ordenação e um filtro de situação em `/mock-exams` permitiriam pedir só a página exibida.
 
 ## 8. Semântica da análise
 

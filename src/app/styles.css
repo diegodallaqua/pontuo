@@ -1,6 +1,7 @@
 @import '../features/auth/ui/auth.css';
 @import '../features/mock-exams/ui/mock-exams.css';
 @import '../features/performance/ui/performance.css';
+@import '../features/admin/ui/admin.css';
 
 :root {
   font-family: 'Manrope Variable', system-ui, sans-serif;
@@ -128,7 +129,8 @@ select {
   color: #28324d;
   font-size: 13px;
 }
-input::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: #9299ab;
   font-weight: 400;
 }
@@ -144,6 +146,31 @@ select:focus {
 input:disabled,
 select:disabled,
 input:read-only {
+  background: #f5f6fa;
+  color: #7a8297;
+}
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  margin-top: 9px;
+  padding: 12px 13px;
+  border: 1px solid #dfe3ed;
+  border-radius: 8px;
+  background: #fff;
+  color: #28324d;
+  font-size: 13px;
+  line-height: 1.7;
+  resize: vertical;
+}
+textarea:hover {
+  border-color: #bac2d5;
+}
+textarea:focus {
+  border-color: var(--accent);
+  outline: 3px solid #3a4df51a;
+}
+textarea:disabled {
   background: #f5f6fa;
   color: #7a8297;
 }
@@ -370,6 +397,7 @@ progress::-moz-progress-bar {
   display: flex;
   flex-direction: column;
   padding: 34px 20px 0;
+  overflow-y: auto;
   background: white;
   border-right: 1px solid var(--border);
 }

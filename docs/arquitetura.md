@@ -67,6 +67,19 @@ Um componente é uma função que retorna JSX: a descrição da tela. JSX se par
 
 O domínio não importa HTTP. A porta basta para executar `build-mock-exam.test.ts` com respostas controladas.
 
+## Área administrativa
+
+`features/admin` segue as mesmas camadas. O adaptador declara cada recurso uma vez com `resource(http, rota)`, que oferece `list`, `all`, `get`, `create`, `update`, `save` e `remove` tipados pela resposta e pelo corpo. É uma função de fábrica, não uma classe base: todos os recursos têm o mesmo CRUD REST na API.
+
+Duas operações têm regra e compensação, e por isso viraram casos de uso testados sem rede:
+
+- `saveInstitution` cria o endereço antes da instituição e o remove se ela for recusada; `deleteInstitution` faz o caminho inverso.
+- `saveAnswerOption` transfere o gabarito: desmarca a alternativa correta atual, grava a nova e restaura a anterior em caso de falha. Se nem a restauração for confirmada, `AnswerKeyLostError` informa a letra e a lista é recarregada.
+
+`useAdminList` mantém página, busca com atraso de 300 ms e filtros. Trocar busca ou filtro volta à página 1 sem consultar a página antiga. `CrudSection` monta busca, filtros, tabela, diálogos e avisos; cada seção do catálogo informa só consulta, colunas, formulário e textos de exclusão. A questão tem página própria porque alternativas e imagens são recursos separados, liberados depois que a questão existe.
+
+`RequireAdmin` decide apenas o que mostrar. O perfil vem de `/auth/me`, nunca de claims do token, e a API recusa escritas de quem não é administrador.
+
 ## Consistência da prova
 
 Recarregar a URL reconstrói a sessão pelo id. A resposta só muda na interface após confirmação do servidor; falhas preservam a última alternativa confirmada. Essa abordagem é um pouco menos imediata em redes lentas, mas dispensa uma fila otimista complexa.
@@ -91,6 +104,6 @@ Estilos gerais e tokens ficam em `app/styles.css`; estilos específicos acompanh
 
 O gráfico usa SVG, descrição acessível e tabela alternativa. Formulários usam validação nativa e regras adicionais do contrato. `<dialog>` oferece foco nativo; o menu móvel controla foco, Escape e rolagem do fundo. Textos e ícones complementam cores de status.
 
-Sem Redux, decorators de DI, classes base de repository ou caso de uso para cada GET. Histórico e catálogos usam listas completas da API; a paginação do histórico é visual. A revisão de erros segue fora do MVP.
+Sem Redux, decorators de DI, classes base de repository ou caso de uso para cada GET. Catálogos e histórico percorrem as páginas da API com `listAll`; o histórico busca pelo nome no servidor e mantém situação, ordem e paginação de 9 cartões na tela. A revisão de erros segue fora do MVP.
 
 Referências: [Pensando em React](https://react.dev/learn/thinking-in-react), [Gerenciando estado](https://react.dev/learn/managing-state) e [React Router declarativo](https://reactrouter.com/start/declarative/installation).
