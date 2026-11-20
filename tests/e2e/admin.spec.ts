@@ -142,6 +142,35 @@ test('cria a questão, transfere o gabarito e cadastra imagem', async ({ page })
   await dialog.getByRole('button', { name: 'Cadastrar imagem' }).click();
   await expect(page.getByText('Imagem cadastrada.')).toBeVisible();
   await expect(page.getByText('Célula vegetal')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Adicionar' }).nth(1).click();
+  await dialog.getByLabel('Arquivo da imagem').setInputFiles({
+    name: 'cloroplasto.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64',
+    ),
+  });
+  await expect(dialog.getByLabel('Endereço da imagem')).toBeDisabled();
+  await dialog.getByLabel('Legenda').fill('Cloroplasto ampliado');
+  await dialog.getByRole('button', { name: 'Cadastrar imagem' }).click();
+  await expect(page.getByText('Cloroplasto ampliado')).toBeVisible();
+  const signing = state.requests.find((request) => request.path === '/question-images/upload-url');
+  expect(signing?.body).toEqual({ contentType: 'image/png', size: 70 });
+  expect(state.uploads).toEqual([
+    {
+      url: expect.stringMatching(/X-Amz-Signature=teste$/),
+      contentType: 'image/png',
+      size: 70,
+    },
+  ]);
+  const uploaded = state.resources['/question-images']!.rows.at(-1);
+  expect(uploaded).toMatchObject({
+    url: expect.stringMatching(/^https:\/\/imagens\.example\.test\/questoes\/\d+\.png$/),
+    subtitle: 'Cloroplasto ampliado',
+  });
+  await expect(page.locator(`img[src="${uploaded!.url}"]`)).toBeVisible();
   await page.screenshot({ path: '.artifacts/admin-question-desktop.png', fullPage: true });
 });
 

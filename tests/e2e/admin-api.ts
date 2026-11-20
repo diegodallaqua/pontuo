@@ -187,9 +187,28 @@ export async function mockAdminApi(page: Page) {
       body: Body | null;
     }[],
     resources,
+    uploads: [] as { url: string; contentType: string | undefined; size: number }[],
   };
   let nextId = 100;
   await startSession(page);
+  // Armazenamento das imagens: o PUT assinado guarda o arquivo e o GET público o devolve.
+  const stored = new Map<string, { contentType: string; body: Buffer }>();
+  await page.route('https://imagens.example.test/**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const cors = { 'Access-Control-Allow-Origin': '*' };
+    if (request.method() === 'PUT') {
+      const body = request.postDataBuffer() ?? Buffer.alloc(0);
+      const contentType = request.headers()['content-type'];
+      state.uploads.push({ url: request.url(), contentType, size: body.length });
+      stored.set(url.pathname, { contentType: contentType ?? '', body });
+      return route.fulfill({ status: 200, headers: cors });
+    }
+    const file = stored.get(url.pathname);
+    return file
+      ? route.fulfill({ status: 200, contentType: file.contentType, body: file.body })
+      : route.fulfill({ status: 404 });
+  });
   await page.route(
     (url) => url.pathname.startsWith('/api/'),
     async (route) => {
@@ -206,6 +225,15 @@ export async function mockAdminApi(page: Page) {
           : route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(data) });
       if (path === '/auth/me') return respond(admin);
       if (path === '/auth/logout') return respond(null, 204);
+      if (path === '/question-images/upload-url' && method === 'POST') {
+        const key = `/questoes/${nextId++}.${String(body!.contentType).split('/')[1]}`;
+        return respond({
+          uploadUrl: `https://imagens.example.test${key}?X-Amz-Signature=teste`,
+          headers: { 'Content-Type': body!.contentType },
+          url: `https://imagens.example.test${key}`,
+          expiresAt: '2026-11-05T13:10:00Z',
+        });
+      }
       const match = path.match(/^(\/[a-z-]+)(?:\/(\d+))?$/);
       const resource = match && resources[match[1]!];
       if (!resource) return respond({ message: `Endpoint não simulado: ${method} ${path}` }, 501);

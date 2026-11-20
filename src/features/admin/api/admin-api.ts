@@ -14,6 +14,8 @@ import type {
   InstitutionInput,
   KnowledgeAreaInput,
   QuestionImageInput,
+  QuestionImageUpload,
+  QuestionImageUploadInput,
   QuestionInput,
   State,
   SubjectInput,
@@ -48,7 +50,11 @@ export function createAdminApi(http: HttpClient) {
     entranceExams: resource<AdminEntranceExam, EntranceExamInput>(http, '/entrance-exams'),
     questions: resource<AdminQuestion, QuestionInput>(http, '/questions'),
     answerOptions: resource<AnswerKeyOption, AnswerOptionInput>(http, '/answer-options'),
-    questionImages: resource<QuestionImage, QuestionImageInput>(http, '/question-images'),
+    questionImages: {
+      ...resource<QuestionImage, QuestionImageInput>(http, '/question-images'),
+      uploadUrl: (body: QuestionImageUploadInput) =>
+        http<QuestionImageUpload>('/question-images/upload-url', { method: 'POST', body }),
+    },
   };
 }
 export type AdminApi = ReturnType<typeof createAdminApi>;

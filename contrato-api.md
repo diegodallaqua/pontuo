@@ -95,6 +95,7 @@ As tabelas pedem 10 registros por página, com `search` e filtros enviados à AP
 - A API aceita uma única alternativa correta (`409` na segunda). Para transferir o gabarito, a anterior é desmarcada antes e restaurada se a nova gravação falhar.
 - `409` de integridade ("registro em uso") aparece no diálogo de exclusão. Excluir uma disciplina remove seus assuntos (`ON DELETE CASCADE`); excluir uma questão remove alternativas e imagens.
 - URLs de imagem aceitas: `http(s)://` ou caminho iniciado por `/`.
+- Upload de imagem (só administrador): `POST /question-images/upload-url` com `{ contentType, size }` devolve `{ uploadUrl, headers, url, expiresAt }`, URL assinada por 10 minutos. O cliente faz `PUT` do arquivo puro (sem `FormData`) para `uploadUrl` com os `headers` devolvidos e depois grava `url` em `POST /question-images`. Tipo e tamanho entram na assinatura, então o R2 recusa arquivo diferente do declarado. Aceitos PNG, JPEG, WebP e GIF até 5 MB; SVG fica de fora porque pode carregar script. O cliente valida antes de pedir a assinatura.
 
 ## Erros e tempo
 

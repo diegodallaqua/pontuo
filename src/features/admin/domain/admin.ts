@@ -96,8 +96,22 @@ export interface QuestionImageInput {
   url: string;
   subtitle: string | null;
 }
+export interface QuestionImageUploadInput {
+  contentType: string;
+  size: number;
+}
+// URL assinada por 10 minutos para o PUT do arquivo; `url` é o endereço público gravado na imagem.
+export interface QuestionImageUpload {
+  uploadUrl: string;
+  headers: Record<string, string>;
+  url: string;
+  expiresAt: string;
+}
 
 export const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E'];
+// Formatos e limite aceitos pela assinatura do upload. SVG fica de fora porque pode carregar script.
+export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 export function freeLetters(options: AnswerOption[], current: AnswerOption | null = null) {
   return OPTION_LETTERS.filter(

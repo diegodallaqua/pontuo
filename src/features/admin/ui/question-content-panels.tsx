@@ -5,7 +5,8 @@ import { useResource } from '../../../shared/hooks/use-resource';
 import { Button, ErrorState, Loading } from '../../../shared/ui/components';
 import { isSafeImageUrl, type QuestionImage } from '../../catalog/domain/catalog';
 import { AnswerKeyLostError, saveAnswerOption } from '../application/save-answer-option';
-import { freeLetters, type AnswerKeyOption } from '../domain/admin';
+import { uploadQuestionImage } from '../application/upload-question-image';
+import { freeLetters, IMAGE_TYPES, type AnswerKeyOption } from '../domain/admin';
 import { RowActions } from './admin-table';
 import {
   DeleteDialog,
@@ -321,20 +322,41 @@ function QuestionImageForm({
   onSaved,
 }: DialogProps<QuestionImage> & { questionId: number }) {
   const { admin } = useServices();
+  const [hasFile, setHasFile] = useState(false);
   return (
     <FormDialog
       title={item ? 'Editar imagem' : 'Nova imagem'}
       submitLabel={item ? 'Salvar alterações' : 'Cadastrar imagem'}
       onClose={onClose}
       onSubmit={async (data) => {
+        // Sem arquivo escolhido o FormData traz um File vazio e sem nome; aí vale o endereço.
+        const file = data.get('file');
+        const url =
+          file instanceof File && file.name
+            ? await uploadQuestionImage(admin.questionImages, file)
+            : textField(data, 'url');
+        if (!url) throw new Error('Escolha um arquivo ou informe o endereço da imagem.');
         await admin.questionImages.save(item?.id ?? null, {
           questionId,
-          url: textField(data, 'url'),
+          url,
           subtitle: optionalText(data, 'subtitle'),
         });
         onSaved(item ? 'Imagem atualizada.' : 'Imagem cadastrada.');
       }}
     >
+      <label className="admin-file">
+        Arquivo da imagem
+        <input
+          type="file"
+          name="file"
+          accept={IMAGE_TYPES.join(',')}
+          onChange={(event) => setHasFile(!!event.currentTarget.files?.length)}
+        />
+        <small>
+          PNG, JPEG, WebP ou GIF de até 5 MB.
+          {item && ' Escolha um arquivo só para substituir a imagem atual.'}
+        </small>
+      </label>
       <label>
         Endereço da imagem
         <input
@@ -342,12 +364,16 @@ function QuestionImageForm({
           inputMode="url"
           defaultValue={item?.url}
           maxLength={255}
-          required
+          disabled={hasFile}
           pattern="(https?://|/(?!/)).+"
           title="Use um endereço http(s) ou um caminho que comece com /."
           placeholder="https://…"
         />
-        <small>Endereços http(s) ou caminhos do próprio site, como /imagens/grafico.png.</small>
+        <small>
+          {hasFile
+            ? 'O arquivo escolhido será enviado no lugar do endereço.'
+            : 'Sem arquivo: endereços http(s) ou caminhos do próprio site, como /imagens/grafico.png.'}
+        </small>
       </label>
       <label>
         Legenda
